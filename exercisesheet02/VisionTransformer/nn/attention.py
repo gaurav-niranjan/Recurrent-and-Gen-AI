@@ -52,14 +52,31 @@ class SelfAttentionLayer(nn.Module):
         # Reshape and transpose to get shape: (batch_size, num_heads, seq_length, head_dim)
         # TODO
 
+        #embed_size = h*d (num_head*head_dim)
+        queries = rearrange(queries, 'b s (h d) -> b h s d', h=self.num_heads)
+
+        keys = rearrange(keys, 'b s (h d) -> b h s d', h=self.num_heads)
+
+        values = rearrange(values, 'b s (h d) -> b h s d', h=self.num_heads)
+
+
+
         # Compute scaled dot-product attention
         # Compute attention scores by taking the dot product between queries and keys
         # and scaling by the square root of the head dimension
         # scores shape: (batch_size, num_heads, seq_length, seq_length)
         # TODO
 
+        scores = torch.matmul(queries, rearrange(keys, 'b h s d -> b h d s'))/math.sqrt(self.head_dim)
+
+
+
+
+
         # Compute the attention weights using the softmax function
         # TODO
+        attention_weights = torch.softmax(scores, dim=-1) #dim=-1 to normalize scores for each QUERY position across all KEY positions
+
 
         # Multiply attention weights with values to get the context vector
         # attention_weights: (batch_size, num_heads, seq_length, seq_length)
@@ -67,10 +84,17 @@ class SelfAttentionLayer(nn.Module):
         # Output: (batch_size, num_heads, seq_length, head_dim)
         # TODO
 
+        context = torch.matmul(attention_weights, values)
+        #context.shape: (batch_size, num_heads, seq_length, head_dim)
+
+
+
         # Concatenate the heads and pass through the final linear layer
         # First, transpose and reshape to combine the heads
         # Reshape from (batch_size, num_heads, seq_length, head_dim) to (batch_size, seq_length, embed_size)
         # TODO
+
+        context = rearrange(context, 'b h s d -> b s (h d)')
 
         # Apply the final linear transformation
         out = self.output_linear(out)  # Shape: (batch_size, seq_length, embed_size)

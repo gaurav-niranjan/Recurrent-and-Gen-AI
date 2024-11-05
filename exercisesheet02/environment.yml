@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python=3.10 
   - pytorch-lightning
-  - mkl
+#  - mkl
   - h5py
   - jsmin
   - numpy
