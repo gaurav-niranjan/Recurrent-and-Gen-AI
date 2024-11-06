@@ -199,8 +199,14 @@ class PatchEmbedding(nn.Module):
 
         # Project patches into embedding dimension (treat each fram seperatly!)
         # TODO 
+        self.proj = nn.Sequential(
+            Rearrange('b t (h ph) (w pw) -> b t (h w) (ph pw)', ph=patch_size, pw=patch_size, h=image_height//patch_size, w=image_width//patch_size),
+            nn.Linear(patch_size*patch_size, embed_size)
+        )
+
         
         # TODO add neccesary logic for position embeddings
+        self.positional_embeddings = nn.Parameter(torch.randn(1, num_patches, embed_size))
         
         # Mask percentage for masking patches
         self.mask_percentage = mask_percentage
@@ -253,7 +259,10 @@ class PatchEmbedding(nn.Module):
 
         # Add position embeddings
         # TODO
-        assert False, "TODO: Add position embeddings"
+        position_embeddings = self.position_embeddings  # (1, num_patches, embed_size)
+        x = x + position_embeddings  # Add position embeddings to the patch embeddings
+
+        #assert False, "TODO: Add position embeddings"
 
         return x, mask
 
@@ -268,7 +277,7 @@ class PatchEmbedding(nn.Module):
             Tensor: Output tensor of shape (batch_size, total_patches, embed_size).
         """
         # Project the input
-        assert False, "implement patch embedding"
+        #assert False, "implement patch embedding"
         x = self.proj(x)
 
         # Calculate indices to mask out the last frame's patches
@@ -282,7 +291,7 @@ class PatchEmbedding(nn.Module):
 
         # Add position embeddings
         # TODO
-        assert False, "TODO: Add position embeddings"
+        #assert False, "TODO: Add position embeddings"
 
         return x, mask
 
@@ -333,3 +342,4 @@ class ReversePatchEmbedding(nn.Module):
         # Project embeddings back to flattened patches
         x = self.proj(x)  # Shape: (batch_size, num_patches, num_pixels_per_patch)
         return x
+ 
