@@ -3,6 +3,16 @@ import torch.nn as nn
 import math
 from einops import rearrange
 from einops.layers.torch import Rearrange
+import logging
+
+logging.basicConfig(
+    filename="debug_output.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s"
+)
+
+def debug_print(text):
+    logging.info(text) 
 
 class SelfAttentionLayer(nn.Module):
     def __init__(self, embed_size, num_heads):
@@ -97,7 +107,7 @@ class SelfAttentionLayer(nn.Module):
         context = rearrange(context, 'b h s d -> b s (h d)')
 
         # Apply the final linear transformation
-        out = self.output_linear(out)  # Shape: (batch_size, seq_length, embed_size)
+        out = self.output_linear(context)  # Shape: (batch_size, seq_length, embed_size)
 
         return out
 
@@ -193,9 +203,12 @@ class PatchEmbedding(nn.Module):
 
         # Compute number of patches per frame
         self.num_patches_per_frame = (image_height // patch_size) * (image_width // patch_size)
+        #debug_print(f'number of patches per frame = {self.num_patches_per_frame}')
 
         # compute total number of patches
         num_patches = (image_height // patch_size) * (image_width // patch_size) * num_frames
+        #debug_print(f'total patches = {num_patches}')
+
 
         # Project patches into embedding dimension (treat each fram seperatly!)
         # TODO 
@@ -259,7 +272,7 @@ class PatchEmbedding(nn.Module):
 
         # Add position embeddings
         # TODO
-        position_embeddings = self.position_embeddings  # (1, num_patches, embed_size)
+        position_embeddings = self.positional_embeddings  # (1, num_patches, embed_size)
         x = x + position_embeddings  # Add position embeddings to the patch embeddings
 
         #assert False, "TODO: Add position embeddings"
@@ -278,7 +291,15 @@ class PatchEmbedding(nn.Module):
         """
         # Project the input
         #assert False, "implement patch embedding"
+
+
+        #debug_print(f'Shape of x passed to predict: {x.shape}')
+
+        #Before: x (Tensor): Input tensor of shape (batch_size, num_frames, height, width).
         x = self.proj(x)
+        #Now: x.shape : (batch_size, num_frames, num_patches_per_frame, embed_sie)
+
+        #debug_print(f'Shape of x after proj: {x.shape}')
 
         # Calculate indices to mask out the last frame's patches
         total_patches = self.num_patches_per_frame * self.num_frames
@@ -287,10 +308,26 @@ class PatchEmbedding(nn.Module):
         # Mask out the last frame's patches
         mask = torch.ones(1, total_patches, 1, device=x.device)
         mask[:, start_idx:, :] = 0
+        #debug_print(f'Shape of mask: {mask.shape}')
+
+        #Change shape of x to (batch_size, total_patches, embed_size) to make it compatible with application of the mask
+        x = rearrange(x, 'b t n e -> b (t n) e')
+        #debug_print(f'Shape of x after reshaping for applying mask {x.shape}')
+
+
+
+
         x = x * mask
 
+
+        #debug_print(f'Shape of x after x = x+mask: {x.shape}')
+
+
         # Add position embeddings
-        # TODO
+        # TODO  
+        position_embeddings = self.positional_embeddings  # (1, num_patches, embed_size)
+        x = x + position_embeddings  # Add position embeddings to the patch embeddings
+
         #assert False, "TODO: Add position embeddings"
 
         return x, mask
